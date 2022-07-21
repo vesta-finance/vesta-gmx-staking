@@ -1,15 +1,14 @@
-import { SupportedChain } from "./NetworkConfig"
-
 export interface IDeployConfig {
 	TX_CONFIRMATIONS: number
-	ContractConfigExample?: CrossChainConfigExample
-}
-
-export type CrossChainConfigExample = {
-	[key in SupportedChain | string]?: ContractConfig
+	Setup: ContractConfig
 }
 
 export interface ContractConfig {
-	fakeConfig: string
-	fakeConfig1: number
+	adminWallet: string
+	vestaTreasruy: string
+	gmxToken: string
+	gmxRewardRouterV2: string
+	stakedGmxTracker: string
+	feeGmxTrackerRewards: string
+	activePool: string
 }

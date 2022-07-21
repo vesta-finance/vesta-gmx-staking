@@ -20,7 +20,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	IGMXRewardTracker public feeGmxTrackerRewards;
 	address public stakedGmxTracker;
 
-	uint256 public treasuryFee = 2_000; // 20% in BPS
+	uint256 public treasuryFee;
 	uint256 public rewardShare;
 
 	uint256 public lastBalance;
@@ -79,6 +79,8 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		gmxRewardRouterV2 = IGMXRewardRouterV2(_gmxRewardRouterV2);
 		stakedGmxTracker = _stakedGmxTracker;
 		feeGmxTrackerRewards = IGMXRewardTracker(_feeGmxTrackerRewards);
+
+		treasuryFee = 2_000; // 20% in BPS
 
 		TransferHelper.safeApprove(gmxToken, stakedGmxTracker, type(uint256).max);
 	}
@@ -203,6 +205,10 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	function setTreasuryFee(uint256 _sharesBPS) external override onlyOwner {
 		if (_sharesBPS > 10_000) revert BPSHigherThanOneHundred();
 		treasuryFee = _sharesBPS;
+	}
+
+	function setTreasury(address _newTreasury) external override onlyOwner {
+		vestaTreasury = _newTreasury;
 	}
 
 	function getVaultStake(address _vaultOwner)

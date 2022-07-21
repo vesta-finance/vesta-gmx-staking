@@ -402,7 +402,7 @@ contract VestaGMXStakingTest is BaseTest {
 		underTest.setOperator(address(this), true);
 	}
 
-	function test_setOperator_asOperator_givenNonContractAddress_thenReverts()
+	function test_setOperator_asOwner_givenNonContractAddress_thenReverts()
 		external
 		prankAs(owner)
 	{
@@ -410,7 +410,7 @@ contract VestaGMXStakingTest is BaseTest {
 		underTest.setOperator(address(0x123), true);
 	}
 
-	function test_setOperator_asOperator_givenContractAddress_thenSetsAsOperator()
+	function test_setOperator_asOwner_givenContractAddress_thenSetsAsOperator()
 		external
 		prankAs(owner)
 	{
@@ -424,7 +424,7 @@ contract VestaGMXStakingTest is BaseTest {
 		underTest.setTreasuryFee(10_000);
 	}
 
-	function test_setTreasuryFee_asOperator_givenInvalidBPS_thenReverts()
+	function test_setTreasuryFee_asOwner_givenInvalidBPS_thenReverts()
 		external
 		prankAs(owner)
 	{
@@ -432,12 +432,22 @@ contract VestaGMXStakingTest is BaseTest {
 		underTest.setTreasuryFee(10_001);
 	}
 
-	function test_setTreasuryFee_asOperator_givenValidBPS_thenUpdateBPS()
+	function test_setTreasuryFee_asOwner_givenValidBPS_thenUpdateBPS()
 		external
 		prankAs(owner)
 	{
 		underTest.setTreasuryFee(9_000);
 		assertEq(underTest.treasuryFee(), 9_000);
+	}
+
+	function test_setTreasury_asUser_thenReverts() external prankAs(userA) {
+		vm.expectRevert(NOT_OWNER);
+		underTest.setTreasury(address(0x123));
+	}
+
+	function test_setTreasury_asOwner_thenChangesTreasury() external prankAs(owner) {
+		underTest.setTreasury(address(0x123));
+		assertEq(underTest.vestaTreasury(), address(0x123));
 	}
 
 	function test_getVaultStake_givenStaker_thenReturnsSameAmount()
@@ -476,8 +486,6 @@ contract VestaGMXStakingTest is BaseTest {
 		uint256 expectedReward = 15e15;
 		uint256 treasuryFee = (((expectedReward * PRECISION) / 10_000) * 2_000) /
 			PRECISION;
-
-		console.log(treasuryFee, expectedReward - treasuryFee);
 
 		assertEq(underTest.getVaultOwnerClaimable(userA), expectedReward - treasuryFee);
 	}

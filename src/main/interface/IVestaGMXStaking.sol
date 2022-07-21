@@ -54,6 +54,12 @@ interface IVestaGMXStaking {
 	function setTreasuryFee(uint256 _sharesBPS) external;
 
 	/**
+		setTreasury: set new Treasury address
+		@param _newTreasury treasury address
+	 */
+	function setTreasury(address _newTreasury) external;
+
+	/**
 		getVaultStake: returns how much is staked from a vault owner
 		@param _vaultOwner the address of the vault owner
 		@return stake total token staked
