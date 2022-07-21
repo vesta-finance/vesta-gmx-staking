@@ -1,0 +1,211 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xb6aa6a13c1a7c093752D04bF636b192de68e4088",
+    "txHash": "0x99fba36d465bbf4c94a196b921528237cf303cecc64bcb44c117bdcd0cb93fa9"
+  },
+  "proxies": [
+    {
+      "address": "0xB9b8f95568D5a305c6D70D10Cc1361d9Df3e9F9a",
+      "txHash": "0x684eb4fbfa548c8a2ac63548065e63c1e080921d3ca010dd61be3be589e86688",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "06950827e8fcc9659a4b4b4b06bbbd0ffbf10d22747716cbf4d0b142071dfb35": {
+      "address": "0x036B18d9F491457804e192d9a2B2a7Fa43357689",
+      "txHash": "0x80809b4b6b259d20e9466639db001d43dd0498f96490454abbd6807bc65ccc23",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "lib\\openzeppelin-contracts-upgradeable\\contracts\\proxy\\utils\\Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "lib\\openzeppelin-contracts-upgradeable\\contracts\\proxy\\utils\\Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "lib\\openzeppelin-contracts-upgradeable\\contracts\\utils\\ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "lib\\openzeppelin-contracts-upgradeable\\contracts\\access\\OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "lib\\openzeppelin-contracts-upgradeable\\contracts\\access\\OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "reentrancy",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_bool",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:14"
+          },
+          {
+            "label": "vestaTreasury",
+            "offset": 1,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:16"
+          },
+          {
+            "label": "gmxToken",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:17"
+          },
+          {
+            "label": "gmxRewardRouterV2",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_contract(IGMXRewardRouterV2)1463",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:19"
+          },
+          {
+            "label": "feeGmxTrackerRewards",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_contract(IGMXRewardTracker)1473",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:20"
+          },
+          {
+            "label": "stakedGmxTracker",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_address",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:21"
+          },
+          {
+            "label": "treasuryFee",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_uint256",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:23"
+          },
+          {
+            "label": "rewardShare",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:24"
+          },
+          {
+            "label": "lastBalance",
+            "offset": 0,
+            "slot": "108",
+            "type": "t_uint256",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:26"
+          },
+          {
+            "label": "totalStaked",
+            "offset": 0,
+            "slot": "109",
+            "type": "t_uint256",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:27"
+          },
+          {
+            "label": "operators",
+            "offset": 0,
+            "slot": "110",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:29"
+          },
+          {
+            "label": "stakes",
+            "offset": 0,
+            "slot": "111",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:30"
+          },
+          {
+            "label": "userShares",
+            "offset": 0,
+            "slot": "112",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VestaGMXStaking",
+            "src": "src\\main\\VestaGMXStaking.sol:31"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IGMXRewardRouterV2)1463": {
+            "label": "contract IGMXRewardRouterV2",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGMXRewardTracker)1473": {
+            "label": "contract IGMXRewardTracker",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}

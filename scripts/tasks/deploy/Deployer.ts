@@ -22,25 +22,29 @@ export class Deployer {
 		const [signer] = await this.ethers.getSigners()
 		const setup = this.config.Setup
 
+		if (setup === undefined) throw "Setup not configured"
+
 		const vestaGMX = await this.helper.deployUpgradeableContractWithName(
 			"VestaGMXStaking",
 			"VestaGMXStaking",
 			"setUp",
-			[
-				setup.vestaTreasruy,
-				setup.gmxToken,
-				setup.gmxRewardRouterV2,
-				setup.stakedGmxTracker,
-				setup.feeGmxTrackerRewards,
-			]
+			setup.vestaTreasruy,
+			setup.gmxToken,
+			setup.gmxRewardRouterV2,
+			setup.stakedGmxTracker,
+			setup.feeGmxTrackerRewards
 		)
 
-		await this.helper.sendAndWaitForTransaction(
-			vestaGMX.setOperator(setup.activePool, true)
-		)
+		if (!(await vestaGMX.isOperator(setup.activePool))) {
+			await this.helper.sendAndWaitForTransaction(
+				vestaGMX.setOperator(setup.activePool, true)
+			)
+		}
 
 		await this.helper.sendAndWaitForTransaction(
 			vestaGMX.transferOwnership(setup.adminWallet)
 		)
+
+		await this.hre.upgrades.admin.transferProxyAdminOwnership(setup.adminWallet)
 	}
 }

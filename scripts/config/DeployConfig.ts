@@ -1,6 +1,6 @@
 export interface IDeployConfig {
 	TX_CONFIRMATIONS: number
-	Setup: ContractConfig
+	Setup?: ContractConfig
 }
 
 export interface ContractConfig {

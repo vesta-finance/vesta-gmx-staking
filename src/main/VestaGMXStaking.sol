@@ -11,7 +11,7 @@ import { FullMath } from "./lib/FullMath.sol";
 
 contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	uint256 private constant PRECISION = 1e27;
-	bool private reentrancy = false;
+	bool private reentrancy;
 
 	address public vestaTreasury;
 	address public gmxToken;

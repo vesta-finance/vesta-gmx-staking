@@ -19,9 +19,7 @@ task("deploy", "Deploy task")
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
 	async (_, __, runSuper) => {
 		const paths = await runSuper()
-		return paths.filter(
-			(p: string) => !p.endsWith(".t.sol") || p.includes("/mock/")
-		)
+		return paths.filter((p: string) => !p.endsWith(".t.sol") || p.includes("/mock/"))
 	}
 )
 
@@ -43,14 +41,14 @@ const config: HardhatUserConfig = {
 			url: secrets.networks.rinkeby!.RPC_URL || "",
 			accounts: [secrets.networks.rinkeby!.PRIVATE_KEY],
 		},
-		mainnet: {
-			url: secrets.networks.mainnet!.RPC_URL,
-			accounts: [secrets.networks.mainnet!.PRIVATE_KEY],
+		arbitrumOne: {
+			url: secrets.networks.arbitrumOne!.RPC_URL,
+			accounts: [secrets.networks.arbitrumOne!.PRIVATE_KEY],
 		},
 	},
 	etherscan: {
 		apiKey: {
-			mainnet: secrets.networks.mainnet?.ETHERSCAN_API_KEY!,
+			arbitrumOne: secrets.networks.arbitrumOne?.ETHERSCAN_API_KEY!,
 			rinkeby: secrets.networks.rinkeby?.ETHERSCAN_API_KEY!,
 		},
 	},
