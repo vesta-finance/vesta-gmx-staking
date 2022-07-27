@@ -7,13 +7,21 @@ import readline from "readline-sync"
 const config: IDeployConfig = {
 	TX_CONFIRMATIONS: 3,
 	Setup: {
-		adminWallet: "0x4A4651B31d747D1DdbDDADCF1b1E24a5f6dcc7b0",
-		vestaTreasruy: "0x4A4651B31d747D1DdbDDADCF1b1E24a5f6dcc7b0",
-		gmxToken: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
-		gmxRewardRouterV2: "0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1",
-		stakedGmxTracker: "0x908C4D94D34924765f1eDc22A1DD098397c59dD4",
-		feeGmxTrackerRewards: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
-		activePool: "0xBE3dE7fB9Aa09B3Fa931868Fb49d5BA5fEe2eBb1",
+		general: {
+			adminWallet: "0x4A4651B31d747D1DdbDDADCF1b1E24a5f6dcc7b0",
+			vestaTreasruy: "0x4A4651B31d747D1DdbDDADCF1b1E24a5f6dcc7b0",
+			gmxRewardRouterV2: "0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1",
+			activePool: "0xBE3dE7fB9Aa09B3Fa931868Fb49d5BA5fEe2eBb1",
+		},
+		gmxStaking: {
+			gmxToken: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
+			stakedGmxTracker: "0x908C4D94D34924765f1eDc22A1DD098397c59dD4",
+			feeGmxTrackerRewards: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
+		},
+		glpStaking: {
+			sGLP: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258",
+			feeGlpTrackerRewards: "0x1aDDD80E6039594eE970E5872D247bf0414C8903",
+		},
 	},
 }
 

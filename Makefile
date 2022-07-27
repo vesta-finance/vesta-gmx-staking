@@ -3,6 +3,7 @@
 -include .env
 
 FORK_MAINNET_RPC =  --fork-url https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161
+FORK_ARBITRUM_RPC =  --fork-url ${ARBITRUM_RPC}
 HARDHAT_COMPILE = npx hardhat compile
 FORGE_CLEAN = forge clean
 E2E_ONLY = --match-path src/test/e2e/*

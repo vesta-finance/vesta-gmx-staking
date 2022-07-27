@@ -6,19 +6,21 @@ import "../common/mock/MockERC20.sol";
 
 import "../../main/interface/IGMXRewardRouterV2.sol";
 import "../../main/interface/IGMXRewardTracker.sol";
-import { VestaGMXStaking } from "../../main/VestaGMXStaking.sol";
+import { VestaGLPStaking } from "../../main/VestaGLPStaking.sol";
 
-contract VestaGMXStakingE2E is BaseTest {
-	MockERC20 private GMX = MockERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a);
+interface Minter {
+	function mintAndStakeGlpETH(uint256 _minUsdg, uint256 _minGlp) external payable;
+}
+
+contract VestaGLPStakingE2E is BaseTest {
+	Minter private MINTER = Minter(0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1);
+	MockERC20 private GLP = MockERC20(0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258);
+	MockERC20 private FEE_GLP = MockERC20(0x1aDDD80E6039594eE970E5872D247bf0414C8903);
+	MockERC20 private STAKED_GLP =
+		MockERC20(0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE);
 
 	address private GMXRouter = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
-
-	IGMXRewardTracker private rewardGMX =
-		IGMXRewardTracker(0xd2D1162512F927a7e282Ef43a362659E4F2a728F);
-
-	address private stakedGmxTracker = 0x908C4D94D34924765f1eDc22A1DD098397c59dD4;
-
-	address private HOLDER_GMX = 0x908C4D94D34924765f1eDc22A1DD098397c59dD4;
+	address private feeGlpTracker = 0x1aDDD80E6039594eE970E5872D247bf0414C8903;
 
 	address private owner = accounts.PUBLIC_KEYS(0);
 	address private operator = accounts.PUBLIC_KEYS(1);
@@ -27,29 +29,33 @@ contract VestaGMXStakingE2E is BaseTest {
 	address private userC = address(0x003);
 	address private treasury = address(0x004);
 
-	VestaGMXStaking private underTest;
+	VestaGLPStaking private underTest;
 
 	function setUp() public {
-		vm.prank(HOLDER_GMX);
-		GMX.transfer(operator, 100_000 ether);
+		underTest = new VestaGLPStaking();
+		_mockOperator();
 
-		underTest = new VestaGMXStaking();
 		vm.startPrank(owner);
 		{
-			underTest.setUp(
-				treasury,
-				address(GMX),
-				GMXRouter,
-				stakedGmxTracker,
-				address(rewardGMX)
-			);
-
+			underTest.setUp(treasury, address(STAKED_GLP), GMXRouter, feeGlpTracker);
 			underTest.setOperator(operator, true);
 		}
 		vm.stopPrank();
+	}
 
-		vm.prank(operator);
-		GMX.approve(address(underTest), type(uint256).max);
+	function _mockOperator() internal {
+		vm.startPrank(operator);
+		{
+			vm.deal(operator, 200 ether);
+			MINTER.mintAndStakeGlpETH{ value: 200 ether }(0 ether, 100_000 ether);
+
+			//remove the GLP locks
+			vm.warp(block.timestamp + 16 minutes);
+			vm.etch(operator, address(this).code);
+
+			STAKED_GLP.approve(address(underTest), type(uint256).max);
+		}
+		vm.stopPrank();
 	}
 
 	function test_stake_onBehalfOfUserA_thenWait() public prankAs(operator) {
