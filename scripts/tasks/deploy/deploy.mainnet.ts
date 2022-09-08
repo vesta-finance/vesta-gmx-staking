@@ -19,7 +19,7 @@ const config: IDeployConfig = {
 			feeGmxTrackerRewards: "0xd2D1162512F927a7e282Ef43a362659E4F2a728F",
 		},
 		glpStaking: {
-			sGLP: "0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258",
+			sGLP: "0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE",
 			feeGlpTrackerRewards: "0x1aDDD80E6039594eE970E5872D247bf0414C8903",
 		},
 	},

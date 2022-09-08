@@ -65,6 +65,7 @@ export class Deployer {
 			this.setup.glpStaking.feeGlpTrackerRewards
 		)
 
+
 		if (!(await vestaGLP.isOperator(this.setup.general.activePool))) {
 			await this.helper.sendAndWaitForTransaction(
 				vestaGLP.setOperator(this.setup.general.activePool, true)

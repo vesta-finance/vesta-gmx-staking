@@ -87,8 +87,6 @@ export class DeploymentHelper {
 		)
 
 		this.saveDeployment()
-		await this.verifyContract(contract.address)
-
 		return contract
 	}
 
