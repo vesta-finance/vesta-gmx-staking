@@ -175,7 +175,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 			bool success;
 			uint256 totalReward = curr - last;
 
-			uint256 toTheTreasury = (((totalReward * PRECISION) / 10_000) * treasuryFee) /
+			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
 				PRECISION;
 			uint256 toTheUser = totalReward - toTheTreasury;
 
@@ -256,7 +256,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 		if (curr > last) {
 			uint256 totalReward = curr - last;
-			uint256 toTheTreasury = (((totalReward * PRECISION) / 10_000) * treasuryFee) /
+			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
 				PRECISION;
 			return totalReward - toTheTreasury;
 		}

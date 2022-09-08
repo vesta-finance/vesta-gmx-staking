@@ -44,6 +44,7 @@ contract VestaGMXStakingE2E is BaseTest {
 				address(rewardGMX)
 			);
 
+			vm.etch(operator, "Operator");
 			underTest.setOperator(operator, true);
 		}
 		vm.stopPrank();

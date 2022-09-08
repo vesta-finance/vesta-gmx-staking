@@ -14,7 +14,6 @@ interface Minter {
 
 contract VestaGLPStakingE2E is BaseTest {
 	Minter private MINTER = Minter(0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1);
-	MockERC20 private GLP = MockERC20(0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258);
 	MockERC20 private FEE_GLP = MockERC20(0x1aDDD80E6039594eE970E5872D247bf0414C8903);
 	MockERC20 private STAKED_GLP =
 		MockERC20(0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE);
@@ -54,6 +53,8 @@ contract VestaGLPStakingE2E is BaseTest {
 			vm.etch(operator, address(this).code);
 
 			STAKED_GLP.approve(address(underTest), type(uint256).max);
+
+			assertGt(FEE_GLP.balanceOf(operator), 0);
 		}
 		vm.stopPrank();
 	}

@@ -232,7 +232,7 @@ contract VestaGLPStakingTest is BaseTest {
 		gmxRouter.setNextReward(3e18);
 		underTest.stake(userA, 2e18);
 
-		uint256 expectedBalanceTreasury = (3e18 / 10_000) * underTest.treasuryFee();
+		uint256 expectedBalanceTreasury = (3e18 * underTest.treasuryFee()) / 10_000;
 		uint256 expectedBalanceUser = 3e18 - expectedBalanceTreasury;
 		uint256 expectedNewRewardShare = (3e18 * PRECISION) / 1e18;
 
@@ -456,7 +456,7 @@ contract VestaGLPStakingTest is BaseTest {
 		);
 
 		uint256 expectedReward = 15e15;
-		uint256 treasuryFee = (((expectedReward * PRECISION) / 10_000) * 2_000) /
+		uint256 treasuryFee = (((expectedReward * PRECISION) * 2_000) / 10_000) /
 			PRECISION;
 
 		assertEq(underTest.getVaultOwnerClaimable(userA), expectedReward - treasuryFee);
@@ -672,8 +672,9 @@ contract VestaGLPStakingTest is BaseTest {
 
 		if (expectedCurrentShare > originalShare) {
 			uint256 userTotalReward = expectedCurrentShare - originalShare;
-			uint256 toTreasury = (((userTotalReward * PRECISION) / 10_000) *
-				underTest.treasuryFee()) / PRECISION;
+			uint256 toTreasury = (
+				(((userTotalReward * PRECISION) * underTest.treasuryFee()) / 10_000)
+			) / PRECISION;
 			uint256 toUser = userTotalReward - toTreasury;
 
 			actionHarvest.totalBalance =
