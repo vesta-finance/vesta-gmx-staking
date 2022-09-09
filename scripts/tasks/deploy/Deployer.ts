@@ -1,8 +1,7 @@
-import { IDeployConfig } from "../../config/DeployConfig"
+import { ContractConfig, IDeployConfig } from "../../config/DeployConfig"
 import { DeploymentHelper } from "../../utils/DeploymentHelper"
 import { HardhatRuntimeEnvironment } from "hardhat/types/runtime"
 import { HardhatEthersHelpers } from "@nomiclabs/hardhat-ethers/types"
-import { colorLog, Colors } from "../../utils/ColorConsole"
 import { Contract } from "ethers"
 
 export class Deployer {
@@ -10,41 +9,77 @@ export class Deployer {
 	helper: DeploymentHelper
 	ethers: HardhatEthersHelpers
 	hre: HardhatRuntimeEnvironment
+	setup: ContractConfig
 
 	constructor(config: IDeployConfig, hre: HardhatRuntimeEnvironment) {
 		this.hre = hre
 		this.ethers = hre.ethers
 		this.config = config
 		this.helper = new DeploymentHelper(config, hre)
+		this.setup = this.config.Setup!
+
+		if (this.setup === undefined) throw "Setup not configured"
 	}
 
 	async run() {
-		const [signer] = await this.ethers.getSigners()
-		const setup = this.config.Setup
+		await this.GMXStaking()
+		await this.GLPStaking()
 
-		if (setup === undefined) throw "Setup not configured"
+		const adminProxy = await this.hre.upgrades.admin.getInstance()
+		if ((await adminProxy.owner()) !== this.setup.general.adminWallet) {
+			this.hre.upgrades.admin.transferProxyAdminOwnership(
+				this.setup.general.adminWallet
+			)
+		}
+	}
 
+	async GMXStaking() {
 		const vestaGMX = await this.helper.deployUpgradeableContractWithName(
 			"VestaGMXStaking",
 			"VestaGMXStaking",
 			"setUp",
-			setup.vestaTreasruy,
-			setup.gmxToken,
-			setup.gmxRewardRouterV2,
-			setup.stakedGmxTracker,
-			setup.feeGmxTrackerRewards
+			this.setup.general.vestaTreasruy,
+			this.setup.gmxStaking.gmxToken,
+			this.setup.general.gmxRewardRouterV2,
+			this.setup.gmxStaking.stakedGmxTracker,
+			this.setup.gmxStaking.feeGmxTrackerRewards
 		)
 
-		if (!(await vestaGMX.isOperator(setup.activePool))) {
+		if (!(await vestaGMX.isOperator(this.setup.general.activePool))) {
 			await this.helper.sendAndWaitForTransaction(
-				vestaGMX.setOperator(setup.activePool, true)
+				vestaGMX.setOperator(this.setup.general.activePool, true)
 			)
 		}
 
-		await this.helper.sendAndWaitForTransaction(
-			vestaGMX.transferOwnership(setup.adminWallet)
+		await this.tryGiveOwnership(vestaGMX)
+	}
+
+	async GLPStaking() {
+		const vestaGLP = await this.helper.deployUpgradeableContractWithName(
+			"VestaGLPStaking",
+			"VestaGLPStaking",
+			"setUp",
+			this.setup.general.vestaTreasruy,
+			this.setup.glpStaking.sGLP,
+			this.setup.general.gmxRewardRouterV2,
+			this.setup.glpStaking.feeGlpTrackerRewards
 		)
 
-		await this.hre.upgrades.admin.transferProxyAdminOwnership(setup.adminWallet)
+
+		if (!(await vestaGLP.isOperator(this.setup.general.activePool))) {
+			await this.helper.sendAndWaitForTransaction(
+				vestaGLP.setOperator(this.setup.general.activePool, true)
+			)
+		}
+
+		await this.tryGiveOwnership(vestaGLP)
+	}
+
+	async tryGiveOwnership(contract: Contract) {
+		if ((await contract.owner()) !== this.setup.general.adminWallet) {
+			await this.helper.sendAndWaitForTransaction(
+				contract.transferOwnership(this.setup.general.adminWallet)
+			)
+		}
 	}
 }

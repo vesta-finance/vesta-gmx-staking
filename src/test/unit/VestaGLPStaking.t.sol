@@ -5,9 +5,9 @@ import "../common/base/BaseTest.t.sol";
 import "../common/mock/MockERC20.sol";
 import { FullMath } from "../../main/lib/FullMath.sol";
 import "../../main/interface/IGMXRewardRouterV2.sol";
-import { VestaGMXStaking } from "../../main/VestaGMXStaking.sol";
+import { VestaGLPStaking } from "../../main/VestaGLPStaking.sol";
 
-contract VestaGMXStakingTest is BaseTest {
+contract VestaGLPStakingTest is BaseTest {
 	struct UserStake {
 		uint256 id;
 		address wallet;
@@ -67,29 +67,27 @@ contract VestaGMXStakingTest is BaseTest {
 	address private userE = address(0x005);
 	address private treasury = address(0x006);
 
-	address private stakedGmxTracker = address(0x123);
-	address private feeGmxTrackerRewards = address(0x345);
-	MockERC20 private GMX = new MockERC20("GMX", "GMX", 18);
+	address private feeGlpTrackerRewards = address(0x345);
+	MockERC20 private sGLP = new MockERC20("sGLP", "sGLP", 18);
 	MockGMXRouter private gmxRouter = new MockGMXRouter();
 	ReentrancyAttack private reentrancyAttacker;
 
-	VestaGMXStaking private underTest;
+	VestaGLPStaking private underTest;
 
 	function setUp() external {
 		vm.deal(address(gmxRouter), 100e32);
-		GMX.mint(operator, 100_000e18);
+		sGLP.mint(operator, 100_000e18);
 
 		vm.etch(operator, address(this).code);
 
-		underTest = new VestaGMXStaking();
+		underTest = new VestaGLPStaking();
 		vm.startPrank(owner);
 		{
 			underTest.setUp(
 				treasury,
-				address(GMX),
+				address(sGLP),
 				address(gmxRouter),
-				stakedGmxTracker,
-				feeGmxTrackerRewards
+				feeGlpTrackerRewards
 			);
 
 			underTest.setOperator(operator, true);
@@ -97,72 +95,55 @@ contract VestaGMXStakingTest is BaseTest {
 		vm.stopPrank();
 
 		vm.prank(operator);
-		GMX.approve(address(underTest), type(uint256).max);
+		sGLP.approve(address(underTest), type(uint256).max);
 
 		reentrancyAttacker = new ReentrancyAttack(operator, underTest, vm);
 	}
 
 	function test_setUp_whenCalledTwice_thenReverts() external {
-		underTest = new VestaGMXStaking();
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
+		underTest = new VestaGLPStaking();
+		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
 
 		vm.expectRevert(ERROR_ALREADY_INITIALIZED);
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
+		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
 	}
 
 	function test_setUp_withInvalidAddress_thenReverts() external {
-		underTest = new VestaGMXStaking();
+		underTest = new VestaGLPStaking();
 
 		vm.expectRevert(ERROR_INVALID_ADDRESS);
-		underTest.setUp(address(0), MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
+		underTest.setUp(address(0), MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
 
 		vm.expectRevert(ERROR_INVALID_ADDRESS);
-		underTest.setUp(MOCK_ADDR, address(0), MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
+		underTest.setUp(MOCK_ADDR, address(0), MOCK_ADDR, MOCK_ADDR);
 
 		vm.expectRevert(ERROR_INVALID_ADDRESS);
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, address(0), MOCK_ADDR, MOCK_ADDR);
+		underTest.setUp(MOCK_ADDR, MOCK_ADDR, address(0), MOCK_ADDR);
 
 		vm.expectRevert(ERROR_INVALID_ADDRESS);
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, address(0), MOCK_ADDR);
-		vm.expectRevert(ERROR_INVALID_ADDRESS);
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, address(0));
+		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, address(0));
 	}
 
 	function test_setUp_ThenCallerIsOwner() external prankAs(owner) {
-		underTest = new VestaGMXStaking();
-		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
+		underTest = new VestaGLPStaking();
+		underTest.setUp(MOCK_ADDR, MOCK_ADDR, MOCK_ADDR, MOCK_ADDR);
 
 		assertEq(underTest.owner(), owner);
 	}
 
 	function test_setUp_thenStorageUpdated() external prankAs(owner) {
-		underTest = new VestaGMXStaking();
+		underTest = new VestaGLPStaking();
 		underTest.setUp(
 			treasury,
-			address(GMX),
+			address(sGLP),
 			address(gmxRouter),
-			stakedGmxTracker,
-			feeGmxTrackerRewards
+			feeGlpTrackerRewards
 		);
 
 		assertEq(underTest.vestaTreasury(), treasury);
-		assertEq(underTest.gmxToken(), address(GMX));
+		assertEq(underTest.sGLP(), address(sGLP));
 		assertEq(address(underTest.gmxRewardRouterV2()), address(gmxRouter));
-		assertEq(underTest.stakedGmxTracker(), stakedGmxTracker);
-		assertEq(address(underTest.feeGmxTrackerRewards()), feeGmxTrackerRewards);
-	}
-
-	function test_setUp_thenAllowanceIsSet() external prankAs(owner) {
-		underTest = new VestaGMXStaking();
-		underTest.setUp(
-			treasury,
-			address(GMX),
-			address(gmxRouter),
-			stakedGmxTracker,
-			feeGmxTrackerRewards
-		);
-
-		assertEq(GMX.allowance(address(underTest), stakedGmxTracker), type(uint256).max);
+		assertEq(address(underTest.feeGlpTrackerRewards()), feeGlpTrackerRewards);
 	}
 
 	function test_stake_asUser_thenReverts() external prankAs(userA) {
@@ -201,18 +182,13 @@ contract VestaGMXStakingTest is BaseTest {
 		uint256 staking = 24e18;
 
 		vm.expectCall(
-			address(GMX),
+			address(sGLP),
 			abi.encodeWithSignature(
 				"transferFrom(address,address,uint256)",
 				operator,
 				address(underTest),
 				24e18
 			)
-		);
-
-		vm.expectCall(
-			address(gmxRouter),
-			abi.encodeWithSignature("stakeGmx(uint256)", staking)
 		);
 
 		underTest.stake(userA, 24e18);
@@ -363,17 +339,13 @@ contract VestaGMXStakingTest is BaseTest {
 	{
 		gmxRouter.setNextReward(10e18);
 		underTest.stake(userA, 5e18);
-		uint256 balanceBefore = GMX.balanceOf(operator);
+		uint256 balanceBefore = sGLP.balanceOf(operator);
 
-		vm.expectCall(
-			address(gmxRouter),
-			abi.encodeWithSignature("unstakeGmx(uint256)", 25e17)
-		);
 		underTest.unstake(userA, 25e17);
 
 		assertEq(underTest.getVaultStake(userA), 25e17);
 		assertEq(underTest.totalStaked(), 25e17);
-		assertEq(GMX.balanceOf(operator) - balanceBefore, 25e17);
+		assertEq(sGLP.balanceOf(operator) - balanceBefore, 25e17);
 	}
 
 	function test_claim_asNonStaker_thenReverts() external prankAs(userA) {
@@ -478,7 +450,7 @@ contract VestaGMXStakingTest is BaseTest {
 		underTest.stake(userB, 30e18);
 
 		vm.mockCall(
-			feeGmxTrackerRewards,
+			feeGlpTrackerRewards,
 			abi.encodeWithSignature("claimable(address)", address(underTest)),
 			abi.encode(10e15)
 		);
@@ -700,8 +672,9 @@ contract VestaGMXStakingTest is BaseTest {
 
 		if (expectedCurrentShare > originalShare) {
 			uint256 userTotalReward = expectedCurrentShare - originalShare;
-			uint256 toTreasury = (((userTotalReward * PRECISION) *
-				underTest.treasuryFee()) / 10_000) / PRECISION;
+			uint256 toTreasury = (
+				(((userTotalReward * PRECISION) * underTest.treasuryFee()) / 10_000)
+			) / PRECISION;
 			uint256 toUser = userTotalReward - toTreasury;
 
 			actionHarvest.totalBalance =
@@ -775,12 +748,12 @@ contract ReentrancyAttack {
 		abi.encodeWithSignature("ReentrancyDetected()");
 
 	address operator;
-	VestaGMXStaking underTest;
+	VestaGLPStaking underTest;
 	Vm vm;
 
 	constructor(
 		address _operator,
-		VestaGMXStaking _underTest,
+		VestaGLPStaking _underTest,
 		Vm _vm
 	) {
 		operator = _operator;

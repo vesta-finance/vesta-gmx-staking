@@ -4,11 +4,25 @@ export interface IDeployConfig {
 }
 
 export interface ContractConfig {
+	general: GeneralConfig
+	gmxStaking: GMXStaking
+	glpStaking: GLPStaking
+}
+
+export interface GeneralConfig {
 	adminWallet: string
 	vestaTreasruy: string
-	gmxToken: string
+	activePool: string
 	gmxRewardRouterV2: string
+}
+
+export interface GMXStaking {
+	gmxToken: string
 	stakedGmxTracker: string
 	feeGmxTrackerRewards: string
-	activePool: string
+}
+
+export interface GLPStaking {
+	sGLP: string
+	feeGlpTrackerRewards: string
 }

@@ -11,8 +11,7 @@ import { VestaGMXStaking } from "../../main/VestaGMXStaking.sol";
 contract VestaGMXStakingE2E is BaseTest {
 	MockERC20 private GMX = MockERC20(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a);
 
-	IGMXRewardRouterV2 private GMXRouter =
-		IGMXRewardRouterV2(0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1);
+	address private GMXRouter = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 
 	IGMXRewardTracker private rewardGMX =
 		IGMXRewardTracker(0xd2D1162512F927a7e282Ef43a362659E4F2a728F);
@@ -40,11 +39,12 @@ contract VestaGMXStakingE2E is BaseTest {
 			underTest.setUp(
 				treasury,
 				address(GMX),
-				address(GMXRouter),
+				GMXRouter,
 				stakedGmxTracker,
 				address(rewardGMX)
 			);
 
+			vm.etch(operator, "Operator");
 			underTest.setOperator(operator, true);
 		}
 		vm.stopPrank();

@@ -2,5 +2,9 @@
   "VestaGMXStaking": {
     "address": "0xB9b8f95568D5a305c6D70D10Cc1361d9Df3e9F9a",
     "proxyAdmin": "0xb6aa6a13c1a7c093752D04bF636b192de68e4088"
+  },
+  "VestaGLPStaking": {
+    "address": "0xDB607928F10Ca503Ee6678522567e80D8498D759",
+    "proxyAdmin": "0xb6aa6a13c1a7c093752D04bF636b192de68e4088"
   }
 }

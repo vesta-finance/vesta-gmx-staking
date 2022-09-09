@@ -37,9 +37,9 @@ const config: HardhatUserConfig = {
 		localhost: {
 			url: "http://localhost:8545",
 		},
-		rinkeby: {
-			url: secrets.networks.rinkeby!.RPC_URL || "",
-			accounts: [secrets.networks.rinkeby!.PRIVATE_KEY],
+		arbitrumTestnet: {
+			url: secrets.networks.arbitrumTestnet!.RPC_URL || "",
+			accounts: [secrets.networks.arbitrumTestnet!.PRIVATE_KEY],
 		},
 		arbitrumOne: {
 			url: secrets.networks.arbitrumOne!.RPC_URL,
@@ -49,7 +49,7 @@ const config: HardhatUserConfig = {
 	etherscan: {
 		apiKey: {
 			arbitrumOne: secrets.networks.arbitrumOne?.ETHERSCAN_API_KEY!,
-			rinkeby: secrets.networks.rinkeby?.ETHERSCAN_API_KEY!,
+			arbitrumTestnet: secrets.networks.arbitrumTestnet?.ETHERSCAN_API_KEY!,
 		},
 	},
 	solidity: {

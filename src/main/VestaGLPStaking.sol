@@ -9,16 +9,17 @@ import { IVestaGMXStaking } from "./interface/IVestaGMXStaking.sol";
 import { TransferHelper } from "./lib/TransferHelper.sol";
 import { FullMath } from "./lib/FullMath.sol";
 
-contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
+import { console2 as console } from "forge-std/console2.sol";
+
+contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	uint256 private constant PRECISION = 1e27;
 	bool private reentrancy;
 
 	address public vestaTreasury;
-	address public gmxToken;
+	address public sGLP;
 
 	IGMXRewardRouterV2 public gmxRewardRouterV2;
-	IGMXRewardTracker public feeGmxTrackerRewards;
-	address public stakedGmxTracker;
+	IGMXRewardTracker public feeGlpTrackerRewards;
 
 	uint256 public treasuryFee;
 	uint256 public rewardShare;
@@ -59,30 +60,25 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 	function setUp(
 		address _vestaTreasury,
-		address _gmxToken,
+		address _sGLP,
 		address _gmxRewardRouterV2,
-		address _stakedGmxTracker,
-		address _feeGmxTrackerRewards
+		address _feeGlpTrackerRewards
 	)
 		external
 		onlyActiveAddress(_vestaTreasury)
-		onlyActiveAddress(_gmxToken)
+		onlyActiveAddress(_sGLP)
 		onlyActiveAddress(_gmxRewardRouterV2)
-		onlyActiveAddress(_stakedGmxTracker)
-		onlyActiveAddress(_feeGmxTrackerRewards)
+		onlyActiveAddress(_feeGlpTrackerRewards)
 		initializer
 	{
 		__Ownable_init();
 
 		vestaTreasury = _vestaTreasury;
-		gmxToken = _gmxToken;
+		sGLP = _sGLP;
 		gmxRewardRouterV2 = IGMXRewardRouterV2(_gmxRewardRouterV2);
-		stakedGmxTracker = _stakedGmxTracker;
-		feeGmxTrackerRewards = IGMXRewardTracker(_feeGmxTrackerRewards);
+		feeGlpTrackerRewards = IGMXRewardTracker(_feeGlpTrackerRewards);
 
 		treasuryFee = 2_000; // 20% in BPS
-
-		TransferHelper.safeApprove(gmxToken, stakedGmxTracker, type(uint256).max);
 	}
 
 	function stake(address _behalfOf, uint256 _amount)
@@ -95,22 +91,17 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	{
 		_harvest(_behalfOf);
 
-		TransferHelper.safeTransferFrom(gmxToken, msg.sender, address(this), _amount);
+		TransferHelper.safeTransferFrom(sGLP, msg.sender, address(this), _amount);
 
 		uint256 userStaked = stakes[_behalfOf] += _amount;
 
-		_gmxStake(_amount);
+		totalStaked += _amount;
 
 		userShares[_behalfOf] = FullMath.mulDivRoundingUp(
 			userStaked,
 			rewardShare,
 			PRECISION
 		);
-	}
-
-	function _gmxStake(uint256 _amount) internal {
-		totalStaked += _amount;
-		gmxRewardRouterV2.stakeGmx(_amount);
 
 		emit StakingUpdated(totalStaked);
 	}
@@ -137,8 +128,9 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		uint256 userStaked = stakes[_behalfOf] -= _amount;
 
 		if (_amount != 0) {
-			_gmxUnstake(_amount);
-			TransferHelper.safeTransfer(gmxToken, msg.sender, _amount);
+			uint256 withdrawalAmount = totalStaked < _amount ? totalStaked : _amount;
+			totalStaked -= withdrawalAmount;
+			TransferHelper.safeTransfer(sGLP, msg.sender, _amount);
 		}
 
 		userShares[_behalfOf] = FullMath.mulDivRoundingUp(
@@ -146,13 +138,6 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 			rewardShare,
 			PRECISION
 		);
-	}
-
-	function _gmxUnstake(uint256 _amount) internal {
-		uint256 withdrawalAmount = totalStaked < _amount ? totalStaked : _amount;
-
-		totalStaked -= withdrawalAmount;
-		gmxRewardRouterV2.unstakeGmx(withdrawalAmount);
 
 		emit StakingUpdated(totalStaked);
 	}
@@ -235,7 +220,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		returns (uint256)
 	{
 		uint256 totalFutureBalance = address(this).balance +
-			feeGmxTrackerRewards.claimable(address(this));
+			feeGlpTrackerRewards.claimable(address(this));
 
 		uint256 futureRewardShare = rewardShare;
 
