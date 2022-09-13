@@ -20,6 +20,7 @@ contract VestaGLPStakingE2E is BaseTest {
 
 	address private GMXRouter = 0xA906F338CB21815cBc4Bc87ace9e68c87eF8d8F1;
 	address private feeGlpTracker = 0x1aDDD80E6039594eE970E5872D247bf0414C8903;
+	address private priceFeed = 0xd218Ba424A6166e37A454F8eCe2bf8eB2264eCcA;
 
 	address private owner = accounts.PUBLIC_KEYS(0);
 	address private operator = accounts.PUBLIC_KEYS(1);
@@ -38,6 +39,7 @@ contract VestaGLPStakingE2E is BaseTest {
 		{
 			underTest.setUp(treasury, address(STAKED_GLP), GMXRouter, feeGlpTracker);
 			underTest.setOperator(operator, true);
+			underTest.setPriceFeed(priceFeed);
 		}
 		vm.stopPrank();
 	}
@@ -57,6 +59,10 @@ contract VestaGLPStakingE2E is BaseTest {
 			assertGt(FEE_GLP.balanceOf(operator), 0);
 		}
 		vm.stopPrank();
+	}
+
+	function test_getAPY() public prankAs(operator) {
+		underTest.treasuryFee();
 	}
 
 	function test_stake_onBehalfOfUserA_thenWait() public prankAs(operator) {

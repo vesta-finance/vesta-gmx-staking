@@ -6,10 +6,9 @@ import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.s
 import { IGMXRewardRouterV2 } from "./interface/IGMXRewardRouterV2.sol";
 import { IGMXRewardTracker } from "./interface/IGMXRewardTracker.sol";
 import { IVestaGMXStaking } from "./interface/IVestaGMXStaking.sol";
-import { TransferHelper } from "./lib/TransferHelper.sol";
+import { TransferHelper, IERC20 } from "./lib/TransferHelper.sol";
 import { FullMath } from "./lib/FullMath.sol";
-
-import { console2 as console } from "forge-std/console2.sol";
+import { IPriceFeedV2 } from "./interface/internal/IPriceFeedV2.sol";
 
 contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	uint256 private constant PRECISION = 1e27;
@@ -21,7 +20,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	IGMXRewardRouterV2 public gmxRewardRouterV2;
 	IGMXRewardTracker public feeGlpTrackerRewards;
 
-	uint256 public treasuryFee;
+	uint256 public baseTreasuryFee;
 	uint256 public rewardShare;
 
 	uint256 public lastBalance;
@@ -30,6 +29,14 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	mapping(address => bool) internal operators;
 	mapping(address => uint256) internal stakes;
 	mapping(address => uint256) internal userShares;
+
+	uint256 constant BPS = 10_000;
+	uint256 constant YEARLY = 31_536_000; //86400 * 365
+
+	IGMXRewardTracker public constant fGLP =
+		IGMXRewardTracker(0x4e971a87900b931fF39d1Aad67697F49835400b6);
+
+	IPriceFeedV2 public priceFeed;
 
 	modifier onlyOperator() {
 		if (!operators[msg.sender]) revert CallerIsNotAnOperator(msg.sender);
@@ -78,7 +85,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 		gmxRewardRouterV2 = IGMXRewardRouterV2(_gmxRewardRouterV2);
 		feeGlpTrackerRewards = IGMXRewardTracker(_feeGlpTrackerRewards);
 
-		treasuryFee = 2_000; // 20% in BPS
+		baseTreasuryFee = 2_000; // 20% in BPS
 	}
 
 	function stake(address _behalfOf, uint256 _amount)
@@ -160,8 +167,8 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 			bool success;
 			uint256 totalReward = curr - last;
 
-			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
-				PRECISION;
+			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee()) /
+				10_000) / PRECISION;
 			uint256 toTheUser = totalReward - toTheTreasury;
 
 			(success, ) = _behalfOf.call{ value: toTheUser }("");
@@ -180,20 +187,35 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 	function setOperator(address _address, bool _enabled)
 		external
-		override
 		onlyContract(_address)
 		onlyOwner
 	{
 		operators[_address] = _enabled;
 	}
 
-	function setTreasuryFee(uint256 _sharesBPS) external override onlyOwner {
-		if (_sharesBPS > 10_000) revert BPSHigherThanOneHundred();
-		treasuryFee = _sharesBPS;
+	function setPriceFeed(address _priceFeed) external onlyOwner {
+		priceFeed = IPriceFeedV2(_priceFeed);
 	}
 
-	function setTreasury(address _newTreasury) external override onlyOwner {
+	function setBaseTreasuryFee(uint256 _sharesBPS) external onlyOwner {
+		if (_sharesBPS > 2_000) revert FeeTooHigh();
+
+		baseTreasuryFee = _sharesBPS;
+	}
+
+	function setTreasury(address _newTreasury) external onlyOwner {
 		vestaTreasury = _newTreasury;
+	}
+
+	function treasuryFee() public view returns (uint256 apr_) {
+		uint256 interval = fGLP.tokensPerInterval();
+		uint256 totalSupply = feeGlpTrackerRewards.totalSupply();
+		uint256 ethPrice = priceFeed.getExternalPrice(address(0));
+		uint256 glpPrice = priceFeed.getExternalPrice(sGLP);
+
+		apr_ = ((YEARLY * interval * ethPrice) * BPS) / (totalSupply * glpPrice);
+
+		return (apr_ <= 2500) ? baseTreasuryFee : BPS - ((baseTreasuryFee * BPS) / apr_);
 	}
 
 	function getVaultStake(address _vaultOwner)
@@ -241,8 +263,8 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 		if (curr > last) {
 			uint256 totalReward = curr - last;
-			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
-				PRECISION;
+			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee()) /
+				10_000) / PRECISION;
 			return totalReward - toTheTreasury;
 		}
 

@@ -5,6 +5,8 @@ import "../common/base/BaseTest.t.sol";
 import "../common/mock/MockERC20.sol";
 import { FullMath } from "../../main/lib/FullMath.sol";
 import "../../main/interface/IGMXRewardRouterV2.sol";
+import { IGMXRewardTracker } from "../../main/interface/IGMXRewardTracker.sol";
+import { IPriceFeedV2 } from "../../main/interface/internal/IPriceFeedV2.sol";
 import { VestaGLPStaking } from "../../main/VestaGLPStaking.sol";
 
 contract VestaGLPStakingTest is BaseTest {
@@ -44,6 +46,8 @@ contract VestaGLPStakingTest is BaseTest {
 		"ETHTransferFailed(address,uint256)";
 	bytes private constant ERROR_BPS_HIGHER_THAN_100 =
 		abi.encodeWithSignature("BPSHigherThanOneHundred()");
+	bytes private constant ERROR_FEE_TOO_HIGH =
+		abi.encodeWithSignature("FeeTooHigh()");
 
 	bytes private constant GMX_HANDLE_REWARDS_CALL =
 		abi.encodeWithSignature(
@@ -66,6 +70,16 @@ contract VestaGLPStakingTest is BaseTest {
 	address private userD = address(0x004);
 	address private userE = address(0x005);
 	address private treasury = address(0x006);
+	address private priceFeed = address(0x007);
+	address private fGLP = address(0x4e971a87900b931fF39d1Aad67697F49835400b6);
+
+	uint256 private constant TOKENS_PER_INTERVAL = 1593915343915343;
+	uint256 private constant GLP_PRICE = 91e16;
+	uint256 private constant ETH_PRICE = 1600e18;
+	uint256 private constant TOTAL_SUPPLY = 311978974401636000000000000;
+	uint256 private constant YEARLY = 31_536_000; //86400 * 365
+	uint256 private constant BPS = 10_000;
+	uint256 private APY;
 
 	address private feeGlpTrackerRewards = address(0x345);
 	MockERC20 private sGLP = new MockERC20("sGLP", "sGLP", 18);
@@ -91,6 +105,7 @@ contract VestaGLPStakingTest is BaseTest {
 			);
 
 			underTest.setOperator(operator, true);
+			underTest.setPriceFeed(priceFeed);
 		}
 		vm.stopPrank();
 
@@ -98,6 +113,36 @@ contract VestaGLPStakingTest is BaseTest {
 		sGLP.approve(address(underTest), type(uint256).max);
 
 		reentrancyAttacker = new ReentrancyAttack(operator, underTest, vm);
+		mockAPY();
+	}
+
+	function mockAPY() private {
+		vm.mockCall(
+			fGLP,
+			abi.encodeWithSelector(IGMXRewardTracker.tokensPerInterval.selector),
+			abi.encode(TOKENS_PER_INTERVAL)
+		);
+
+		vm.mockCall(
+			feeGlpTrackerRewards,
+			abi.encodeWithSelector(IGMXRewardTracker.totalSupply.selector),
+			abi.encode(TOTAL_SUPPLY)
+		);
+
+		vm.mockCall(
+			priceFeed,
+			abi.encodeWithSelector(IPriceFeedV2.getExternalPrice.selector, address(0)),
+			abi.encode(ETH_PRICE)
+		);
+		vm.mockCall(
+			priceFeed,
+			abi.encodeWithSelector(IPriceFeedV2.getExternalPrice.selector, address(sGLP)),
+			abi.encode(GLP_PRICE)
+		);
+
+		APY =
+			((YEARLY * TOKENS_PER_INTERVAL * ETH_PRICE) * BPS) /
+			(TOTAL_SUPPLY * GLP_PRICE);
 	}
 
 	function test_setUp_whenCalledTwice_thenReverts() external {
@@ -256,6 +301,9 @@ contract VestaGLPStakingTest is BaseTest {
 	}
 
 	function test_stake_givenReentrancyAttacker_thenReverts() external {
+		uint256 reward = 1e18;
+		uint256 expectingReward = reward - ((reward * underTest.treasuryFee()) / BPS);
+
 		vm.deal(address(underTest), 1000e18);
 
 		vm.prank(operator);
@@ -267,7 +315,7 @@ contract VestaGLPStakingTest is BaseTest {
 			abi.encodeWithSignature(
 				ERROR_ETH_TRANSFER_FAILED_SIG,
 				address(reentrancyAttacker),
-				8e17
+				expectingReward
 			)
 		);
 		vm.prank(operator);
@@ -285,6 +333,9 @@ contract VestaGLPStakingTest is BaseTest {
 		external
 		prankAs(operator)
 	{
+		uint256 reward = 1e18;
+		uint256 expectingReward = reward - ((reward * underTest.treasuryFee()) / BPS);
+
 		vm.deal(address(underTest), 30e18);
 		underTest.stake(address(reentrancyAttacker), 1e18);
 		gmxRouter.setNextReward(1e18);
@@ -293,7 +344,7 @@ contract VestaGLPStakingTest is BaseTest {
 			abi.encodeWithSignature(
 				ERROR_ETH_TRANSFER_FAILED_SIG,
 				address(reentrancyAttacker),
-				8e17
+				expectingReward
 			)
 		);
 
@@ -354,6 +405,9 @@ contract VestaGLPStakingTest is BaseTest {
 	}
 
 	function test_claim_asStaker_whenCalledTwice_thenGiveRewardsOnce() external {
+		uint256 reward = 10e18;
+		uint256 expectingReward = reward - ((reward * underTest.treasuryFee()) / BPS);
+
 		vm.prank(operator);
 		underTest.stake(userA, 100e18);
 
@@ -366,7 +420,7 @@ contract VestaGLPStakingTest is BaseTest {
 		}
 		vm.stopPrank();
 
-		assertEq(userA.balance, 8e18);
+		assertEq(userA.balance, expectingReward);
 	}
 
 	function test_setOperator_asUser_thenReverts() external prankAs(userA) {
@@ -391,25 +445,25 @@ contract VestaGLPStakingTest is BaseTest {
 		assertTrue(underTest.isOperator(address(this)));
 	}
 
-	function test_setTreasuryFee_asUser_thenReverts() external prankAs(userA) {
+	function test_setBaseTreasuryFee_asUser_thenReverts() external prankAs(userA) {
 		vm.expectRevert(NOT_OWNER);
-		underTest.setTreasuryFee(10_000);
+		underTest.setBaseTreasuryFee(10_000);
 	}
 
-	function test_setTreasuryFee_asOwner_givenInvalidBPS_thenReverts()
+	function test_setBaseTreasuryFee_asOwner_givenFeeHigherThan2000_thenReverts()
 		external
 		prankAs(owner)
 	{
-		vm.expectRevert(ERROR_BPS_HIGHER_THAN_100);
-		underTest.setTreasuryFee(10_001);
+		vm.expectRevert(ERROR_FEE_TOO_HIGH);
+		underTest.setBaseTreasuryFee(2001);
 	}
 
-	function test_setTreasuryFee_asOwner_givenValidBPS_thenUpdateBPS()
+	function test_setBaseTreasuryFee_asOwner_givenValidBPS_thenUpdateBPS()
 		external
 		prankAs(owner)
 	{
-		underTest.setTreasuryFee(9_000);
-		assertEq(underTest.treasuryFee(), 9_000);
+		underTest.setBaseTreasuryFee(1000);
+		assertEq(underTest.baseTreasuryFee(), 1000);
 	}
 
 	function test_setTreasury_asUser_thenReverts() external prankAs(userA) {
@@ -420,6 +474,54 @@ contract VestaGLPStakingTest is BaseTest {
 	function test_setTreasury_asOwner_thenChangesTreasury() external prankAs(owner) {
 		underTest.setTreasury(address(0x123));
 		assertEq(underTest.vestaTreasury(), address(0x123));
+	}
+
+	function test_setPriceFeed_asUser_thenReverts() external prankAs(userA) {
+		vm.expectRevert(NOT_OWNER);
+		underTest.setPriceFeed(address(0x123));
+	}
+
+	function test_setPriceFeed_asOwner_thenReverts() external prankAs(owner) {
+		underTest.setPriceFeed(address(0x123));
+		assertEq(address(underTest.priceFeed()), address(0x123));
+	}
+
+	function test_treasuryFee_givenAPYHigherThan25Percent_thenAddExtraToBaseFee()
+		external
+	{
+		assertEq(underTest.treasuryFee(), BPS - ((2000 * BPS) / APY));
+	}
+
+	function test_treasuryFee_givenAPYLowerThan25Percent_thenAddExtraToBaseFee()
+		external
+	{
+		vm.clearMockedCalls();
+
+		vm.mockCall(
+			fGLP,
+			abi.encodeWithSelector(IGMXRewardTracker.tokensPerInterval.selector),
+			abi.encode(0.0014 ether)
+		);
+
+		vm.mockCall(
+			feeGlpTrackerRewards,
+			abi.encodeWithSelector(IGMXRewardTracker.totalSupply.selector),
+			abi.encode(TOTAL_SUPPLY)
+		);
+
+		vm.mockCall(
+			priceFeed,
+			abi.encodeWithSelector(IPriceFeedV2.getExternalPrice.selector, address(0)),
+			abi.encode(ETH_PRICE)
+		);
+		vm.mockCall(
+			priceFeed,
+			abi.encodeWithSelector(IPriceFeedV2.getExternalPrice.selector, address(sGLP)),
+			abi.encode(GLP_PRICE)
+		);
+
+		//Mocked APY == 2488;
+		assertEq(underTest.treasuryFee(), 2000);
 	}
 
 	function test_getVaultStake_givenStaker_thenReturnsSameAmount()
@@ -445,6 +547,9 @@ contract VestaGLPStakingTest is BaseTest {
 		external
 		prankAs(operator)
 	{
+		uint256 reward = 15e15;
+		uint256 expectedReward = reward - ((reward * underTest.treasuryFee()) / BPS);
+
 		underTest.stake(userA, 30e18);
 		gmxRouter.setNextReward(10e15);
 		underTest.stake(userB, 30e18);
@@ -455,11 +560,7 @@ contract VestaGLPStakingTest is BaseTest {
 			abi.encode(10e15)
 		);
 
-		uint256 expectedReward = 15e15;
-		uint256 treasuryFee = (((expectedReward * PRECISION) * 2_000) / 10_000) /
-			PRECISION;
-
-		assertEq(underTest.getVaultOwnerClaimable(userA), expectedReward - treasuryFee);
+		assertEq(underTest.getVaultOwnerClaimable(userA), expectedReward);
 	}
 
 	function test_harvestRewards_asOperator_givenMultipleStakerAtSameTime_thenDistributeCorrectly()
