@@ -10,6 +10,7 @@ interface IVestaGMXStaking {
 	error ETHTransferFailed(address to, uint256 amount);
 	error ReentrancyDetected();
 	error BPSHigherThanOneHundred();
+	error FeeTooHigh();
 
 	event StakingUpdated(uint256 totalStaking);
 	event RewardReceived(uint256 reward);
@@ -36,28 +37,6 @@ interface IVestaGMXStaking {
 		claim: Allow a vault owner to claim their reward without modifying their vault
 	 */
 	function claim() external;
-
-	/**
-		setOperator: Add or Remove an operator. An operator can stake and unstake.
-		@dev Operator needs to be a contract address
-		@dev Can only be called by an owner
-		@param _address the address of the operator
-		@param _enabled the access of the operator
-	 */
-	function setOperator(address _address, bool _enabled) external;
-
-	/**
-		setTreasuryFee: The share of the rewards that goes to the vault owners
-		@dev BPS format (10_000 <-> 0);
-		@param _sharesBPS the new shares of the vault owners
-	 */
-	function setTreasuryFee(uint256 _sharesBPS) external;
-
-	/**
-		setTreasury: set new Treasury address
-		@param _newTreasury treasury address
-	 */
-	function setTreasury(address _newTreasury) external;
 
 	/**
 		getVaultStake: returns how much is staked from a vault owner

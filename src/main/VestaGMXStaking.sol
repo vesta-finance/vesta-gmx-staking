@@ -195,19 +195,18 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 	function setOperator(address _address, bool _enabled)
 		external
-		override
 		onlyContract(_address)
 		onlyOwner
 	{
 		operators[_address] = _enabled;
 	}
 
-	function setTreasuryFee(uint256 _sharesBPS) external override onlyOwner {
+	function setTreasuryFee(uint256 _sharesBPS) external onlyOwner {
 		if (_sharesBPS > 10_000) revert BPSHigherThanOneHundred();
 		treasuryFee = _sharesBPS;
 	}
 
-	function setTreasury(address _newTreasury) external override onlyOwner {
+	function setTreasury(address _newTreasury) external onlyOwner {
 		vestaTreasury = _newTreasury;
 	}
 
