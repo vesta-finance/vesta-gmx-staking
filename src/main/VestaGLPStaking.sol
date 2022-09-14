@@ -18,7 +18,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	address public sGLP;
 
 	IGMXRewardRouterV2 public gmxRewardRouterV2;
-	IGMXRewardTracker public feeGlpTrackerRewards;
+	IGMXRewardTracker public feeGlpTrackerRewards; //fsGLP
 
 	uint256 public baseTreasuryFee;
 	uint256 public rewardShare;
