@@ -207,7 +207,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 		vestaTreasury = _newTreasury;
 	}
 
-	function treasuryFee() public view returns (uint256 apr_) {
+	function treasuryFee() public view returns (uint256) {
 		return baseTreasuryFee;
 	}
 
