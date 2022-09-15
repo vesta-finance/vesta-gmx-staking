@@ -478,7 +478,7 @@
             "label": "gmxRewardRouterV2",
             "offset": 0,
             "slot": "103",
-            "type": "t_contract(IGMXRewardRouterV2)2252",
+            "type": "t_contract(IGMXRewardRouterV2)1507",
             "contract": "VestaGLPStaking",
             "src": "src/main/VestaGLPStaking.sol:20"
           },
@@ -486,7 +486,7 @@
             "label": "feeGlpTrackerRewards",
             "offset": 0,
             "slot": "104",
-            "type": "t_contract(IGMXRewardTracker)2272",
+            "type": "t_contract(IGMXRewardTracker)1527",
             "contract": "VestaGLPStaking",
             "src": "src/main/VestaGLPStaking.sol:21"
           },
@@ -496,8 +496,7 @@
             "slot": "105",
             "type": "t_uint256",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:24",
-            "renamedFrom": "treasuryFee"
+            "src": "src/main/VestaGLPStaking.sol:23"
           },
           {
             "label": "rewardShare",
@@ -505,7 +504,7 @@
             "slot": "106",
             "type": "t_uint256",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:25"
+            "src": "src/main/VestaGLPStaking.sol:24"
           },
           {
             "label": "lastBalance",
@@ -513,7 +512,7 @@
             "slot": "107",
             "type": "t_uint256",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:27"
+            "src": "src/main/VestaGLPStaking.sol:26"
           },
           {
             "label": "totalStaked",
@@ -521,7 +520,7 @@
             "slot": "108",
             "type": "t_uint256",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:28"
+            "src": "src/main/VestaGLPStaking.sol:27"
           },
           {
             "label": "operators",
@@ -529,7 +528,7 @@
             "slot": "109",
             "type": "t_mapping(t_address,t_bool)",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:30"
+            "src": "src/main/VestaGLPStaking.sol:29"
           },
           {
             "label": "stakes",
@@ -537,7 +536,7 @@
             "slot": "110",
             "type": "t_mapping(t_address,t_uint256)",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:31"
+            "src": "src/main/VestaGLPStaking.sol:30"
           },
           {
             "label": "userShares",
@@ -545,15 +544,15 @@
             "slot": "111",
             "type": "t_mapping(t_address,t_uint256)",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:32"
+            "src": "src/main/VestaGLPStaking.sol:31"
           },
           {
             "label": "priceFeed",
             "offset": 0,
             "slot": "112",
-            "type": "t_contract(IPriceFeedV2)2368",
+            "type": "t_contract(IPriceFeedV2)1623",
             "contract": "VestaGLPStaking",
-            "src": "src/main/VestaGLPStaking.sol:40"
+            "src": "src/main/VestaGLPStaking.sol:39"
           }
         ],
         "types": {
@@ -573,15 +572,214 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(IGMXRewardRouterV2)2252": {
+          "t_contract(IGMXRewardRouterV2)1507": {
             "label": "contract IGMXRewardRouterV2",
             "numberOfBytes": "20"
           },
-          "t_contract(IGMXRewardTracker)2272": {
+          "t_contract(IGMXRewardTracker)1527": {
             "label": "contract IGMXRewardTracker",
             "numberOfBytes": "20"
           },
-          "t_contract(IPriceFeedV2)2368": {
+          "t_contract(IPriceFeedV2)1623": {
+            "label": "contract IPriceFeedV2",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "0c6a3f9506e8066114100d3e3fb1a35540a2dbbf8fda42078a307e359c5ea2bf": {
+      "address": "0xE3A2E95E98FB7AB439213C4c2146686a3Cea92ec",
+      "txHash": "0xc30ae32cbf154a761b0e605e2960335d81685f578596ac29336b040c1cbdc228",
+      "layout": {
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "reentrancy",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_bool",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:15"
+          },
+          {
+            "label": "vestaTreasury",
+            "offset": 1,
+            "slot": "101",
+            "type": "t_address",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:17"
+          },
+          {
+            "label": "sGLP",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_address",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:18"
+          },
+          {
+            "label": "gmxRewardRouterV2",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_contract(IGMXRewardRouterV2)2191",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:20"
+          },
+          {
+            "label": "feeGlpTrackerRewards",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_contract(IGMXRewardTracker)2211",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:21"
+          },
+          {
+            "label": "baseTreasuryFee",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_uint256",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:23"
+          },
+          {
+            "label": "rewardShare",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_uint256",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:24"
+          },
+          {
+            "label": "lastBalance",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_uint256",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:26"
+          },
+          {
+            "label": "totalStaked",
+            "offset": 0,
+            "slot": "108",
+            "type": "t_uint256",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:27"
+          },
+          {
+            "label": "operators",
+            "offset": 0,
+            "slot": "109",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:29"
+          },
+          {
+            "label": "stakes",
+            "offset": 0,
+            "slot": "110",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:30"
+          },
+          {
+            "label": "userShares",
+            "offset": 0,
+            "slot": "111",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:31"
+          },
+          {
+            "label": "priceFeed",
+            "offset": 0,
+            "slot": "112",
+            "type": "t_contract(IPriceFeedV2)2307",
+            "contract": "VestaGLPStaking",
+            "src": "src/main/VestaGLPStaking.sol:39"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IGMXRewardRouterV2)2191": {
+            "label": "contract IGMXRewardRouterV2",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IGMXRewardTracker)2211": {
+            "label": "contract IGMXRewardTracker",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IPriceFeedV2)2307": {
             "label": "contract IPriceFeedV2",
             "numberOfBytes": "20"
           },

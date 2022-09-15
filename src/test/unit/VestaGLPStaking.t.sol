@@ -450,12 +450,12 @@ contract VestaGLPStakingTest is BaseTest {
 		underTest.setBaseTreasuryFee(10_000);
 	}
 
-	function test_setBaseTreasuryFee_asOwner_givenFeeHigherThan2000_thenReverts()
+	function test_setBaseTreasuryFee_asOwner_givenFeeHigherThan10000_thenReverts()
 		external
 		prankAs(owner)
 	{
-		vm.expectRevert(ERROR_FEE_TOO_HIGH);
-		underTest.setBaseTreasuryFee(2001);
+		vm.expectRevert(ERROR_BPS_HIGHER_THAN_100);
+		underTest.setBaseTreasuryFee(10001);
 	}
 
 	function test_setBaseTreasuryFee_asOwner_givenValidBPS_thenUpdateBPS()
@@ -486,10 +486,8 @@ contract VestaGLPStakingTest is BaseTest {
 		assertEq(address(underTest.priceFeed()), address(0x123));
 	}
 
-	function test_treasuryFee_givenAPYHigherThan25Percent_thenAddExtraToBaseFee()
-		external
-	{
-		assertEq(underTest.treasuryFee(), BPS - ((2000 * BPS) / APY));
+	function test_treasuryFee_thenReturnsSameAsBaseTreasuryFee() external {
+		assertEq(underTest.treasuryFee(), underTest.baseTreasuryFee());
 	}
 
 	function test_treasuryFee_givenAPYLowerThan25Percent_thenAddExtraToBaseFee()

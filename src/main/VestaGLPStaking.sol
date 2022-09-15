@@ -198,7 +198,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	}
 
 	function setBaseTreasuryFee(uint256 _sharesBPS) external onlyOwner {
-		if (_sharesBPS > 2_000) revert FeeTooHigh();
+		if (_sharesBPS > 10_000) revert BPSHigherThanOneHundred();
 
 		baseTreasuryFee = _sharesBPS;
 	}
@@ -208,14 +208,7 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 	}
 
 	function treasuryFee() public view returns (uint256 apr_) {
-		uint256 interval = fGLP.tokensPerInterval();
-		uint256 totalSupply = feeGlpTrackerRewards.totalSupply();
-		uint256 ethPrice = priceFeed.getExternalPrice(address(0));
-		uint256 glpPrice = priceFeed.getExternalPrice(sGLP);
-
-		apr_ = ((YEARLY * interval * ethPrice) * BPS) / (totalSupply * glpPrice);
-
-		return (apr_ <= 2500) ? baseTreasuryFee : BPS - ((baseTreasuryFee * BPS) / apr_);
+		return baseTreasuryFee;
 	}
 
 	function getVaultStake(address _vaultOwner)
