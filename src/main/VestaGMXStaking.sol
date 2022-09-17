@@ -20,7 +20,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	IGMXRewardTracker public feeGmxTrackerRewards;
 	address public stakedGmxTracker;
 
-	uint256 public treasuryFee;
+	uint256 public override treasuryFee;
 	uint256 public rewardShare;
 
 	uint256 public lastBalance;
@@ -29,6 +29,12 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	mapping(address => bool) internal operators;
 	mapping(address => uint256) internal stakes;
 	mapping(address => uint256) internal userShares;
+
+	uint256 public constant BPS = 10_000;
+	bool public newFeeFlow;
+	uint256 public failedToSend;
+
+	mapping(address => uint256) private recoverableETH;
 
 	modifier onlyOperator() {
 		if (!operators[msg.sender]) revert CallerIsNotAnOperator(msg.sender);
@@ -162,7 +168,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 		if (totalStaked > 0) {
 			rewardShare += FullMath.mulDiv(
-				address(this).balance - lastBalance,
+				getBalance() - lastBalance,
 				PRECISION,
 				totalStaked
 			);
@@ -172,25 +178,46 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		uint256 curr = FullMath.mulDiv(stakes[_behalfOf], rewardShare, PRECISION);
 
 		if (curr > last) {
-			bool success;
 			uint256 totalReward = curr - last;
 
-			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
-				PRECISION;
-			uint256 toTheUser = totalReward - toTheTreasury;
-
-			(success, ) = _behalfOf.call{ value: toTheUser }("");
+			(bool success, ) = _behalfOf.call{ value: totalReward }("");
 			if (!success) {
-				revert ETHTransferFailed(_behalfOf, toTheUser);
-			}
-
-			(success, ) = vestaTreasury.call{ value: toTheTreasury }("");
-			if (!success) {
-				revert ETHTransferFailed(vestaTreasury, toTheTreasury);
+				recoverableETH[_behalfOf] += totalReward;
+				emit FailedToSendETH(_behalfOf, totalReward);
 			}
 		}
 
+		lastBalance = getBalance();
+	}
+
+	function recoverETH() external {
+		uint256 toUser = recoverableETH[msg.sender];
+		recoverableETH[msg.sender] = 0;
+
+		require(toUser != 0, "Nothing to recover.");
+
+		(bool success, ) = msg.sender.call{ value: toUser }("");
+		if (!success) {
+			revert ETHTransferFailed(msg.sender, toUser);
+		}
+	}
+
+	function applyNewFeeFlow() external onlyOwner {
+		require(!newFeeFlow, "Function already called");
+		newFeeFlow = true;
+
+		_payTreasuryFee(address(this).balance);
 		lastBalance = address(this).balance;
+	}
+
+	function retrySendTreasuryFund() external onlyOwner {
+		uint256 toTreasury = failedToSend;
+		failedToSend = 0;
+
+		(bool success, ) = vestaTreasury.call{ value: toTreasury }("");
+		if (!success) {
+			revert ETHTransferFailed(vestaTreasury, toTreasury);
+		}
 	}
 
 	function setOperator(address _address, bool _enabled)
@@ -202,7 +229,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	}
 
 	function setTreasuryFee(uint256 _sharesBPS) external onlyOwner {
-		if (_sharesBPS > 10_000) revert BPSHigherThanOneHundred();
+		if (_sharesBPS > BPS) revert BPSHigherThanOneHundred();
 		treasuryFee = _sharesBPS;
 	}
 
@@ -233,9 +260,10 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		view
 		returns (uint256)
 	{
-		uint256 totalFutureBalance = address(this).balance +
-			feeGmxTrackerRewards.claimable(address(this));
+		uint256 claimableReward = feeGmxTrackerRewards.claimable(address(this));
+		claimableReward -= FullMath.mulDiv(claimableReward, treasuryFee, BPS);
 
+		uint256 totalFutureBalance = getBalance() + claimableReward;
 		uint256 futureRewardShare = rewardShare;
 
 		if (totalStaked > 0) {
@@ -254,13 +282,23 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		);
 
 		if (curr > last) {
-			uint256 totalReward = curr - last;
-			uint256 toTheTreasury = (((totalReward * PRECISION) * treasuryFee) / 10_000) /
-				PRECISION;
-			return totalReward - toTheTreasury;
+			return curr - last;
 		}
 
 		return 0;
+	}
+
+	function getBalance() public view returns (uint256) {
+		return address(this).balance - failedToSend;
+	}
+
+	function getRecoverableETH(address _user)
+		external
+		view
+		override
+		returns (uint256)
+	{
+		return recoverableETH[_user];
 	}
 
 	function isOperator(address _operator) external view override returns (bool) {
@@ -268,6 +306,18 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 	}
 
 	receive() external payable {
+		_payTreasuryFee(msg.value);
 		emit RewardReceived(msg.value);
+	}
+
+	function _payTreasuryFee(uint256 _rawRewards) internal {
+		uint256 toTheTreasury = (((_rawRewards * PRECISION) * treasuryFee) / BPS) /
+			PRECISION;
+
+		(bool success, ) = vestaTreasury.call{ value: toTheTreasury }("");
+		if (!success) {
+			failedToSend += toTheTreasury;
+			emit FailedToSendETH(vestaTreasury, toTheTreasury);
+		}
 	}
 }

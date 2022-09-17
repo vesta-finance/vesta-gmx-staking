@@ -12,6 +12,7 @@ interface IVestaGMXStaking {
 	error BPSHigherThanOneHundred();
 	error FeeTooHigh();
 
+	event FailedToSendETH(address indexed to, uint256 _amount);
 	event StakingUpdated(uint256 totalStaking);
 	event RewardReceived(uint256 reward);
 
@@ -37,6 +38,11 @@ interface IVestaGMXStaking {
 		claim: Allow a vault owner to claim their reward without modifying their vault
 	 */
 	function claim() external;
+
+	/**
+		@notice recoverETH the claiming fails to send eth, you can recover them from this function.
+	*/
+	function recoverETH() external;
 
 	/**
 		getVaultStake: returns how much is staked from a vault owner
@@ -65,10 +71,19 @@ interface IVestaGMXStaking {
 		returns (uint256);
 
 	/**
+		@notice getRecoverableETH - get total of eth that the contract failed to send to the entity.
+		@param _user wallet
+		@return recoverable_ the amount that the user can recover from {recoverETH}
+	 */
+	function getRecoverableETH(address _user) external view returns (uint256);
+
+	/**
 		isOperator: find if a contract is an operator
 		@notice An operator can only be a contract. For vesta, the contract will be ActivePool
 		@param _operator the address of the contract
 		@return status true if it's an operator
 	 */
 	function isOperator(address _operator) external view returns (bool);
+
+	function treasuryFee() external view returns (uint256);
 }
