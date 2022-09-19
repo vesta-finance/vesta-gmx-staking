@@ -34,11 +34,6 @@ export class Deployer {
 	}
 
 	async GMXStaking() {
-		const e = await this.hre.upgrades.prepareUpgrade("0xDB607928F10Ca503Ee6678522567e80D8498D759", await this.hre.ethers.getContractFactory("VestaGLPStaking"));
-		console.log(e);
-
-		throw e;
-
 		const vestaGMX = await this.helper.deployUpgradeableContractWithName(
 			"VestaGMXStaking",
 			"VestaGMXStaking",
