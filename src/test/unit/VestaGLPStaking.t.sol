@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.15;
 
-import "../common/base/BaseTest.t.sol";
+import "./BaseGMXProtocol.t.sol";
 import "../common/mock/MockERC20.sol";
 import { FullMath } from "../../main/lib/FullMath.sol";
 import "../../main/interface/IGMXRewardRouterV2.sol";
@@ -9,58 +9,7 @@ import { IGMXRewardTracker } from "../../main/interface/IGMXRewardTracker.sol";
 import { IPriceFeedV2 } from "../../main/interface/internal/IPriceFeedV2.sol";
 import { VestaGLPStaking } from "../../main/VestaGLPStaking.sol";
 
-contract VestaGLPStakingTest is BaseTest {
-	struct UserStake {
-		uint256 id;
-		address wallet;
-		uint256 staking;
-	}
-
-	struct ExpectedActionHarvest {
-		uint256[30] usersShare;
-		uint256 totalStaked;
-		uint256 currentRewards;
-		uint256 totalBalance;
-	}
-
-	struct ExpectedHarvestResult {
-		uint256[30] toUser;
-		uint256 toTreasury;
-	}
-
-	uint256 private constant PRECISION = 1e27;
-
-	bytes private constant ERROR_REENTRANCY_DETECTED =
-		abi.encodeWithSignature("ReentrancyDetected()");
-	bytes private constant ERROR_ALREADY_INITIALIZED =
-		"Initializable: contract is already initialized";
-	string private constant ERROR_CALLER_NOT_OPERATOR_SIG =
-		"CallerIsNotAnOperator(address)";
-	bytes private constant ERROR_ZERO_AMOUNT_PASSED =
-		abi.encodeWithSignature("ZeroAmountPassed()");
-	bytes private constant ERROR_INVALID_ADDRESS =
-		abi.encodeWithSignature("InvalidAddress()");
-	bytes private constant ERROR_INSUFFICIENT_STAKE_BALANCE =
-		abi.encodeWithSignature("InsufficientStakeBalance()");
-	string private constant ERROR_ETH_TRANSFER_FAILED_SIG =
-		"ETHTransferFailed(address,uint256)";
-	bytes private constant ERROR_BPS_HIGHER_THAN_100 =
-		abi.encodeWithSignature("BPSHigherThanOneHundred()");
-	bytes private constant ERROR_FEE_TOO_HIGH =
-		abi.encodeWithSignature("FeeTooHigh()");
-
-	bytes private constant GMX_HANDLE_REWARDS_CALL =
-		abi.encodeWithSignature(
-			"handleRewards(bool,bool,bool,bool,bool,bool,bool)",
-			true,
-			true,
-			true,
-			true,
-			true,
-			true,
-			true
-		);
-
+contract VestaGLPStakingTest is BaseGMXProtocol {
 	address private owner = accounts.PUBLIC_KEYS(0);
 	address private operator = accounts.PUBLIC_KEYS(1);
 	address private MOCK_ADDR = address(0x1);
@@ -78,12 +27,10 @@ contract VestaGLPStakingTest is BaseTest {
 	uint256 private constant ETH_PRICE = 1600e18;
 	uint256 private constant TOTAL_SUPPLY = 311978974401636000000000000;
 	uint256 private constant YEARLY = 31_536_000; //86400 * 365
-	uint256 private constant BPS = 10_000;
 	uint256 private APY;
 
 	address private feeGlpTrackerRewards = address(0x345);
 	MockERC20 private sGLP = new MockERC20("sGLP", "sGLP", 18);
-	MockGMXRouter private gmxRouter = new MockGMXRouter();
 	ReentrancyAttack private reentrancyAttacker;
 
 	VestaGLPStaking private underTest;
@@ -95,6 +42,8 @@ contract VestaGLPStakingTest is BaseTest {
 		vm.etch(operator, address(this).code);
 
 		underTest = new VestaGLPStaking();
+		interfaceUnderTest = IVestaGMXStaking(underTest);
+
 		vm.startPrank(owner);
 		{
 			underTest.setUp(
@@ -258,7 +207,7 @@ contract VestaGLPStakingTest is BaseTest {
 	{
 		gmxRouter.setNextReward(12e18);
 		underTest.stake(userA, 1e18);
-		assertEq(underTest.lastBalance(), 12e18);
+		assertEq(underTest.lastBalance(), _applyTreasuryFee(12e18));
 	}
 
 	function test_stake_asOperator_givenFirstStaker_thenDontUpdateRewardShare()
@@ -273,13 +222,16 @@ contract VestaGLPStakingTest is BaseTest {
 		external
 		prankAs(operator)
 	{
+		uint256 reward = 3e18;
+
 		underTest.stake(userA, 1e18);
-		gmxRouter.setNextReward(3e18);
+		gmxRouter.setNextReward(reward);
 		underTest.stake(userA, 2e18);
 
-		uint256 expectedBalanceTreasury = (3e18 * underTest.treasuryFee()) / 10_000;
-		uint256 expectedBalanceUser = 3e18 - expectedBalanceTreasury;
-		uint256 expectedNewRewardShare = (3e18 * PRECISION) / 1e18;
+		uint256 expectedBalanceTreasury = (reward * underTest.treasuryFee()) / 10_000;
+		uint256 expectedBalanceUser = reward - expectedBalanceTreasury;
+		uint256 expectedNewRewardShare = ((reward - expectedBalanceTreasury) *
+			PRECISION) / 1e18;
 
 		assertEq(userA.balance, expectedBalanceUser);
 		assertEq(treasury.balance, expectedBalanceTreasury);
@@ -290,17 +242,19 @@ contract VestaGLPStakingTest is BaseTest {
 		external
 		prankAs(operator)
 	{
+		uint256 reward = 3e18;
+
 		underTest.stake(userA, 2e18);
-		gmxRouter.setNextReward(3e18);
+		gmxRouter.setNextReward(reward);
 		underTest.stake(userB, 4e18);
 
-		uint256 expectedNewRewardShare = (3e18 * PRECISION) / 2e18;
+		uint256 expectedNewRewardShare = (_applyTreasuryFee(reward) * PRECISION) / 2e18;
 		uint256 expectedOriginalShare = (4e18 * expectedNewRewardShare) / PRECISION;
 
 		assertEq(underTest.getVaultOwnerShare(userB), expectedOriginalShare);
 	}
 
-	function test_stake_givenReentrancyAttacker_thenReverts() external {
+	function test_stake_givenReentrancyAttacker_thenEmitsFailedToSendETH() external {
 		uint256 reward = 1e18;
 		uint256 expectingReward = reward - ((reward * underTest.treasuryFee()) / BPS);
 
@@ -311,13 +265,9 @@ contract VestaGLPStakingTest is BaseTest {
 
 		gmxRouter.setNextReward(1e18);
 
-		vm.expectRevert(
-			abi.encodeWithSignature(
-				ERROR_ETH_TRANSFER_FAILED_SIG,
-				address(reentrancyAttacker),
-				expectingReward
-			)
-		);
+		vm.expectEmit(true, true, true, true);
+		emit FailedToSendETH(address(reentrancyAttacker), expectingReward);
+
 		vm.prank(operator);
 		underTest.stake(address(reentrancyAttacker), 1e18);
 
@@ -329,7 +279,7 @@ contract VestaGLPStakingTest is BaseTest {
 		underTest.unstake(userA, 1e18);
 	}
 
-	function test_unstake_asOperator_givenReentrancyAttacker_thenReverts()
+	function test_unstake_asOperator_givenReentrancyAttacker_thenEmitsFailedToSendETH()
 		external
 		prankAs(operator)
 	{
@@ -340,13 +290,8 @@ contract VestaGLPStakingTest is BaseTest {
 		underTest.stake(address(reentrancyAttacker), 1e18);
 		gmxRouter.setNextReward(1e18);
 
-		vm.expectRevert(
-			abi.encodeWithSignature(
-				ERROR_ETH_TRANSFER_FAILED_SIG,
-				address(reentrancyAttacker),
-				expectingReward
-			)
-		);
+		vm.expectEmit(true, true, true, true);
+		emit FailedToSendETH(address(reentrancyAttacker), expectingReward);
 
 		underTest.unstake(address(reentrancyAttacker), 0);
 		assertEq(address(reentrancyAttacker).balance, 0);
@@ -421,6 +366,30 @@ contract VestaGLPStakingTest is BaseTest {
 		vm.stopPrank();
 
 		assertEq(userA.balance, expectingReward);
+	}
+
+	function test_claim_asReentrencyAttacker_thenEmitsFailedToSendETH() external {
+		uint256 reward = 1e18;
+		uint256 expectingReward = reward - ((reward * underTest.treasuryFee()) / BPS);
+
+		vm.deal(address(underTest), 1000e18);
+
+		vm.prank(operator);
+		underTest.stake(address(reentrancyAttacker), 100e18);
+
+		gmxRouter.setNextReward(1e18);
+
+		vm.expectEmit(true, true, true, true);
+		emit FailedToSendETH(address(reentrancyAttacker), expectingReward);
+
+		vm.prank(address(reentrancyAttacker));
+		underTest.claim();
+
+		assertEq(address(reentrancyAttacker).balance, 0);
+		assertEq(
+			underTest.getRecoverableETH(address(reentrancyAttacker)),
+			expectingReward
+		);
 	}
 
 	function test_setOperator_asUser_thenReverts() external prankAs(userA) {
@@ -522,6 +491,72 @@ contract VestaGLPStakingTest is BaseTest {
 
 		//Mocked APY == 2488;
 		assertEq(underTest.treasuryFee(), 2000);
+	}
+
+	function test_applyNewFeeFlow_asUser_thenReverts() external prankAs(userA) {
+		vm.expectRevert(NOT_OWNER);
+		underTest.applyNewFeeFlow();
+	}
+
+	function test_applyNewFeeFlow_asOwner_whenFunctionAlreadyCalled_thenReverts()
+		external
+		prankAs(owner)
+	{
+		underTest.applyNewFeeFlow();
+		vm.expectRevert("Function already called");
+		underTest.applyNewFeeFlow();
+	}
+
+	function test_applyNewFeeFlow_asOwner_whenSystemWasAlreadyRunning_thenDoCorrection()
+		external
+		prankAs(owner)
+	{
+		uint256 rawReward = 4.52e18;
+		uint256 rawRewardAfterFee = _applyTreasuryFee(rawReward) - 1; // roundDown
+
+		changePrank(operator);
+		underTest.stake(userA, 23e18);
+		underTest.stake(userB, 23e18);
+		gmxRouter.setNextReward(rawReward);
+
+		changePrank(owner);
+		underTest.applyNewFeeFlow();
+
+		changePrank(operator);
+		underTest.unstake(userA, 0);
+		underTest.unstake(userB, 0);
+
+		assertEq(rawRewardAfterFee / 2, userA.balance);
+		assertEq(rawRewardAfterFee / 2, userB.balance);
+	}
+
+	function test_enableStaticTreasuryFee_asUser_thenReverts()
+		external
+		prankAs(userA)
+	{
+		vm.expectRevert(NOT_OWNER);
+		underTest.enableStaticTreasuryFee(true);
+	}
+
+	function test_enableStaticTreasuryFee_asOwner_givenTrue_thenEnableStaticFeeAndTreasuryFeeReturnBaseFee()
+		external
+		prankAs(owner)
+	{
+		underTest.enableStaticTreasuryFee(true);
+		assertTrue(underTest.useStaticFee());
+		assertEq(underTest.treasuryFee(), underTest.baseTreasuryFee());
+	}
+
+	function test_enableStaticTreasuryFee_asOwner_givenFalse_whenFeeHigherThan20Percent_thenDisableAndCorrectFee()
+		external
+		prankAs(owner)
+	{
+		underTest.enableStaticTreasuryFee(true);
+		underTest.setBaseTreasuryFee(2001);
+
+		underTest.enableStaticTreasuryFee(false);
+		assertTrue(!underTest.useStaticFee());
+		assertEq(underTest.baseTreasuryFee(), 2000);
 	}
 
 	function test_getVaultStake_givenStaker_thenReturnsSameAmount()
@@ -665,6 +700,7 @@ contract VestaGLPStakingTest is BaseTest {
 		actionHarvest = _stakeWithEstimation(1e12, stakingUserE, actionHarvest);
 
 		gmxRouter.setNextReward(25e12);
+		uint256 estimationToTreasury = 25e12 + 5e10 + 7e10 + 5e11 + 1e12;
 
 		(actionHarvest, results) = _getHarvestReward(
 			25e12,
@@ -711,159 +747,14 @@ contract VestaGLPStakingTest is BaseTest {
 		assertEq(userC.balance, results.toUser[stakingUserC.id]);
 		assertEq(userD.balance, results.toUser[stakingUserD.id]);
 		assertEq(userE.balance, results.toUser[stakingUserE.id]);
-		assertEq(treasury.balance, results.toTreasury);
+		assertEq(
+			treasury.balance,
+			estimationToTreasury - _applyTreasuryFee(estimationToTreasury)
+		);
 
 		assertGt(userA.balance, userB.balance);
 		assertGt(userB.balance, userC.balance);
 		assertGt(userD.balance, userC.balance);
 		assertGt(userC.balance, userE.balance);
-	}
-
-	function _stakeWithEstimation(
-		uint256 nextReward,
-		UserStake memory user,
-		ExpectedActionHarvest memory expectedActions
-	) internal returns (ExpectedActionHarvest memory) {
-		uint256 totalBalance = expectedActions.totalBalance;
-
-		gmxRouter.setNextReward(nextReward);
-
-		underTest.stake(user.wallet, user.staking);
-		expectedActions.currentRewards += getExtraEstimationShare(
-			(totalBalance + nextReward) - totalBalance,
-			expectedActions.totalStaked
-		);
-
-		expectedActions.totalStaked += user.staking;
-
-		expectedActions.usersShare[user.id] = getEstimationUserShare(
-			user.staking,
-			expectedActions.currentRewards,
-			true
-		);
-
-		expectedActions.totalBalance += nextReward;
-
-		return expectedActions;
-	}
-
-	function _getHarvestReward(
-		uint256 extraNewEth,
-		UserStake memory user,
-		ExpectedActionHarvest memory actionHarvest,
-		ExpectedHarvestResult memory results
-	)
-		internal
-		view
-		returns (ExpectedActionHarvest memory, ExpectedHarvestResult memory)
-	{
-		uint256 balance = actionHarvest.totalBalance;
-		uint256 originalShare = actionHarvest.usersShare[user.id];
-
-		actionHarvest.currentRewards += getExtraEstimationShare(
-			(balance + extraNewEth) - balance,
-			actionHarvest.totalStaked
-		);
-
-		uint256 expectedCurrentShare = getEstimationUserShare(
-			user.staking,
-			actionHarvest.currentRewards,
-			false
-		);
-
-		if (expectedCurrentShare > originalShare) {
-			uint256 userTotalReward = expectedCurrentShare - originalShare;
-			uint256 toTreasury = (
-				(((userTotalReward * PRECISION) * underTest.treasuryFee()) / 10_000)
-			) / PRECISION;
-			uint256 toUser = userTotalReward - toTreasury;
-
-			actionHarvest.totalBalance =
-				(actionHarvest.totalBalance + extraNewEth) -
-				userTotalReward;
-
-			results.toUser[user.id] = toUser;
-			results.toTreasury += toTreasury;
-		}
-		return (actionHarvest, results);
-	}
-
-	function getExtraEstimationShare(uint256 balanceDiff, uint256 totalStakes)
-		internal
-		pure
-		returns (uint256)
-	{
-		return
-			totalStakes > 0 ? FullMath.mulDiv(balanceDiff, PRECISION, totalStakes) : 0;
-	}
-
-	function getEstimationUserShare(
-		uint256 staking,
-		uint256 estimationShare,
-		bool roundUp
-	) internal pure returns (uint256) {
-		return
-			roundUp
-				? FullMath.mulDivRoundingUp(staking, estimationShare, PRECISION)
-				: FullMath.mulDiv(staking, estimationShare, PRECISION);
-	}
-}
-
-contract MockGMXRouter is IGMXRewardRouterV2 {
-	uint256 nextRewardETH = 0;
-
-	function setNextReward(uint256 eth) external {
-		nextRewardETH = eth;
-	}
-
-	function stakeGmx(uint256 _amount) external override {}
-
-	function unstakeGmx(uint256 _amount) external override {}
-
-	function handleRewards(
-		bool _shouldClaimGmx,
-		bool _shouldStakeGmx,
-		bool _shouldClaimEsGmx,
-		bool _shouldStakeEsGmx,
-		bool _shouldStakeMultiplierPoints,
-		bool _shouldClaimWeth,
-		bool _shouldConvertWethToEth
-	) external override {
-		_shouldClaimGmx = true;
-		_shouldStakeGmx = true;
-		_shouldClaimEsGmx = true;
-		_shouldStakeEsGmx = true;
-		_shouldStakeMultiplierPoints = true;
-		_shouldClaimWeth = true;
-		_shouldConvertWethToEth = true;
-
-		(bool success, ) = msg.sender.call{ value: nextRewardETH }("");
-		require(success, "failed to send eth");
-
-		nextRewardETH = 0;
-	}
-}
-
-contract ReentrancyAttack {
-	bytes private constant ERROR_REENTRANCY_DETECTED =
-		abi.encodeWithSignature("ReentrancyDetected()");
-
-	address operator;
-	VestaGLPStaking underTest;
-	Vm vm;
-
-	constructor(
-		address _operator,
-		VestaGLPStaking _underTest,
-		Vm _vm
-	) {
-		operator = _operator;
-		underTest = _underTest;
-		vm = _vm;
-	}
-
-	receive() external payable {
-		vm.prank(operator);
-		underTest.unstake(address(this), 0);
 	}
 }
