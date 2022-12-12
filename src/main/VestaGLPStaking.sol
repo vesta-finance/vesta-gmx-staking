@@ -259,6 +259,10 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 		}
 	}
 
+	function setFeeGlpTrackerReward(address _feeTracker) external onlyOwner {
+		feeGlpTrackerRewards = IGMXRewardTracker(_feeTracker);
+	}
+
 	function getVaultStake(address _vaultOwner)
 		external
 		view
@@ -343,3 +347,4 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 		}
 	}
 }
+

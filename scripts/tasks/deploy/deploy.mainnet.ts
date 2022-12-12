@@ -20,7 +20,7 @@ const config: IDeployConfig = {
 		},
 		glpStaking: {
 			sGLP: "0x2F546AD4eDD93B956C8999Be404cdCAFde3E89AE",
-			feeGlpTrackerRewards: "0x1aDDD80E6039594eE970E5872D247bf0414C8903",
+			feeGlpTrackerRewards: "0x4e971a87900b931fF39d1Aad67697F49835400b6",
 		},
 	},
 }
@@ -44,3 +44,4 @@ export async function execute(hre: HardhatRuntimeEnvironment) {
 
 	await new Deployer(config, hre).run()
 }
+

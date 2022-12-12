@@ -455,6 +455,19 @@ contract VestaGLPStakingTest is BaseGMXProtocol {
 		assertEq(address(underTest.priceFeed()), address(0x123));
 	}
 
+	function test_setFeeGlpTrackerReward_asUser_thenReverts() external prankAs(userA) {
+		vm.expectRevert(NOT_OWNER);
+		underTest.setFeeGlpTrackerReward(address(0x123));
+	}
+
+	function test_setFeeGlpTrackerReward_asOwner_thenUpdateAddress()
+		external
+		prankAs(owner)
+	{
+		underTest.setFeeGlpTrackerReward(address(0x123));
+		assertEq(address(underTest.feeGlpTrackerRewards()), address(0x123));
+	}
+
 	function test_treasuryFee_givenAPYHigherThan25Percent_thenAddExtraToBaseFee()
 		external
 	{
@@ -758,3 +771,4 @@ contract VestaGLPStakingTest is BaseGMXProtocol {
 		assertGt(userC.balance, userE.balance);
 	}
 }
+
