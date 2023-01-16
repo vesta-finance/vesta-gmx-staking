@@ -9,7 +9,10 @@ import "../../main/interface/IGMXRewardTracker.sol";
 import { VestaGLPStaking } from "../../main/VestaGLPStaking.sol";
 
 interface Minter {
-	function mintAndStakeGlpETH(uint256 _minUsdg, uint256 _minGlp) external payable;
+	function mintAndStakeGlpETH(uint256 _minUsdg, uint256 _minGlp)
+		external
+		payable
+		returns (uint256);
 }
 
 contract VestaGLPStakingE2E is BaseTest {
