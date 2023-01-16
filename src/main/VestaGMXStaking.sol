@@ -123,7 +123,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 	function claim() external override noReentrancy {
 		if (stakes[msg.sender] == 0) revert InsufficientStakeBalance();
-		_unstake(msg.sender, 0);
+		_unstake(msg.sender, 0, msg.sender);
 	}
 
 	function unstake(address _behalfOf, uint256 _amount)
@@ -132,14 +132,19 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 		onlyOperator
 		noReentrancy
 	{
-		_unstake(_behalfOf, _amount);
+		_unstake(_behalfOf, _amount, msg.sender);
 	}
 
 	function forceExiting(address _user) external onlyOwner {
-		_unstake(_user, stakes[_user]);
+		//Send back to ActivePool https://arbiscan.io/address/0xBE3dE7fB9Aa09B3Fa931868Fb49d5BA5fEe2eBb1
+		_unstake(_user, stakes[_user], 0xBE3dE7fB9Aa09B3Fa931868Fb49d5BA5fEe2eBb1);
 	}
 
-	function _unstake(address _behalfOf, uint256 _amount) internal {
+	function _unstake(
+		address _behalfOf,
+		uint256 _amount,
+		address _receiver
+	) internal {
 		if (totalStaked < _amount || stakes[_behalfOf] < _amount) {
 			revert InsufficientStakeBalance();
 		}
@@ -148,7 +153,7 @@ contract VestaGMXStaking is IVestaGMXStaking, OwnableUpgradeable {
 
 		if (_amount != 0) {
 			_gmxUnstake(_amount);
-			TransferHelper.safeTransfer(gmxToken, msg.sender, _amount);
+			TransferHelper.safeTransfer(gmxToken, _receiver, _amount);
 		}
 
 		userShares[_behalfOf] = FullMath.mulDivRoundingUp(
