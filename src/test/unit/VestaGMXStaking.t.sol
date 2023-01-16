@@ -329,6 +329,21 @@ contract VestaGMXStakingTest is BaseGMXProtocol {
 		assertEq(GMX.balanceOf(operator) - balanceBefore, 25e17);
 	}
 
+	function test_forceExit_asUser_thenReverts() external {
+		vm.expectRevert(NOT_OWNER);
+		underTest.forceExiting(userA);
+	}
+
+	function test_forceExit_asOwner_thenReverts() external prankAs(owner) {
+		changePrank(operator);
+		underTest.stake(userA, 5e18);
+
+		changePrank(owner);
+		underTest.forceExiting(userA);
+
+		assertEq(underTest.getVaultStake(userA), 0);
+	}
+
 	function test_claim_asNonStaker_thenReverts() external prankAs(userA) {
 		vm.expectRevert(ERROR_INSUFFICIENT_STAKE_BALANCE);
 		underTest.claim();
@@ -626,3 +641,4 @@ contract VestaGMXStakingTest is BaseGMXProtocol {
 		assertGt(userC.balance, userE.balance);
 	}
 }
+

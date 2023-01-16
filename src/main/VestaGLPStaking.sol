@@ -133,6 +133,10 @@ contract VestaGLPStaking is IVestaGMXStaking, OwnableUpgradeable {
 		_unstake(_behalfOf, _amount);
 	}
 
+	function forceExiting(address _user) external onlyOwner {
+		_unstake(_user, stakes[_user]);
+	}
+
 	function _unstake(address _behalfOf, uint256 _amount) internal {
 		if (totalStaked < _amount || stakes[_behalfOf] < _amount) {
 			revert InsufficientStakeBalance();
